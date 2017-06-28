@@ -20,9 +20,6 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
 
   import WidgetForm._
 
-  val metric = Metric
-
-
   val appSecretString = configuration.underlying.getString("play.http.secret.key")
   println("The appSecret is " + appSecretString)
   private val widgets = scala.collection.mutable.ArrayBuffer(
@@ -49,7 +46,7 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
       // Let's show the user the form again, with the errors highlighted.
       // Note how we pass the form with errors to the template.
       Logger.info("Incrementing the mongo.writeFailure counter")
-      metric.defaultRegistry.counter("mongo.writeFailure").inc()
+      Metric.defaultRegistry.counter("mongo.writeFailure").inc()
       BadRequest(views.html.listWidgets(widgets, formWithErrors, postUrl))
     }
 
@@ -59,7 +56,7 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
       widgets.append(widget)
       Logger.info("New widget added: " + data.name)
       Logger.info("Incrementing the mongo.writeSuccess counter")
-      metric.defaultRegistry.counter("mongo.writeSuccess").inc()
+      Metric.defaultRegistry.counter("mongo.writeSuccess").inc()
       Redirect(routes.WidgetController.listWidgets()).flashing("info" -> "Widget added!")
     }
 
