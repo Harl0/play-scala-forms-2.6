@@ -1,5 +1,5 @@
 import com.google.inject.AbstractModule
-import serices.MetricsService
+import services.MetricsService
 
 /**
   * Created by jason on 28/06/17.

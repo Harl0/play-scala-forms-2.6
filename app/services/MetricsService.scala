@@ -1,4 +1,4 @@
-package serices
+package services
 
 /**
   * Created by jason on 28/06/17.
