@@ -10,7 +10,7 @@ import config.AppConfig
 /**
   * Created by jason on 23/06/17.
   */
-object Graphite {
+object GraphiteService {
 
   lazy val config = AppConfig
 

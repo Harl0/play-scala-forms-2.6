@@ -2,12 +2,16 @@ package controllers
 
 import javax.inject.Inject
 
+import connectors.ClientConnector
 import models.Widget
 import play.api.Logger
 import play.api.data._
 import play.api.i18n._
+import play.api.libs.json.Json
 import play.api.mvc._
-import utility.metric.{Metric, Graphite}
+import utility.metric.Metric
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * The classic WidgetController using I18nSupport.
@@ -15,7 +19,7 @@ import utility.metric.{Metric, Graphite}
   * I18nSupport provides implicits that create a Messages instances from
   * a request using implicit conversion.
   */
-class WidgetController @Inject()(cc: ControllerComponents, configuration: play.api.Configuration) extends AbstractController(cc)
+class WidgetController @Inject()(cc: ControllerComponents, configuration: play.api.Configuration, clientConnector: ClientConnector) extends AbstractController(cc)
   with I18nSupport {
 
   import WidgetForm._
@@ -34,9 +38,9 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
     Ok(views.html.index())
   }
 
-  def listWidgets = Action { implicit request: Request[AnyContent] =>
+  def addWidget = Action { implicit request: Request[AnyContent] =>
     // Pass an unpopulated form to the template
-    Ok(views.html.listWidgets(widgets, form, postUrl))
+    Ok(views.html.addWidgets(widgets, form, postUrl))
   }
 
   // This will be the action that handles our form post
@@ -47,7 +51,7 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
       // Note how we pass the form with errors to the template.
       Logger.info("Incrementing the mongo.writeFailure counter")
       Metric.defaultRegistry.counter("mongo.writeFailure").inc()
-      BadRequest(views.html.listWidgets(widgets, formWithErrors, postUrl))
+      BadRequest(views.html.addWidgets(widgets, formWithErrors, postUrl))
     }
 
     val successFunction = { data: Data =>
@@ -57,11 +61,27 @@ class WidgetController @Inject()(cc: ControllerComponents, configuration: play.a
       Logger.info("New widget added: " + data.name)
       Logger.info("Incrementing the mongo.writeSuccess counter")
       Metric.defaultRegistry.counter("mongo.writeSuccess").inc()
-      Redirect(routes.WidgetController.listWidgets()).flashing("info" -> "Widget added!")
+      Redirect(routes.WidgetController.addWidget()).flashing("info" -> "Widget added!")
     }
 
     val formValidationResult = form.bindFromRequest
     formValidationResult.fold(errorFunction, successFunction)
+  }
+
+  def retrieveAllClients: Action[AnyContent] = Action.async { implicit request =>
+    clientConnector.getAllClients.map { x =>
+      Ok(Json.toJson(x))
+    }.recover {
+      case ex: Exception => InternalServerError
+    }
+  }
+
+  def retrieveAllClientsPage: Action[AnyContent] = Action.async { implicit request =>
+    clientConnector.getAllClients.map { x =>
+      Ok(views.html.listWidgets(x))
+    }.recover {
+      case ex: Exception => InternalServerError
+    }
   }
 
 }
